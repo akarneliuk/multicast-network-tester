@@ -94,7 +94,7 @@ func (mgs *MulticastGroups) Decode(ctx *kong.DecodeContext) error {
 			mcastAddrPort = strings.Split(ifaceAndAdressPort[0], ":")
 
 		default:
-			return fmt.Errorf("'%v' is of unknown format. Shall 239.2.3.4:123 for IPv4 or [ff03::123]:123 for IPv6", ifaceAndAdressPort[0])
+			return fmt.Errorf("'%v' is of unknown format. Shall be 239.2.3.4:123 for IPv4 or [ff03::123]:123 for IPv6", ifaceAndAdressPort[0])
 		}
 
 		// Check that both address and port exist
