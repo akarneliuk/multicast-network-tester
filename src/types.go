@@ -24,6 +24,7 @@ type CliArg struct {
 
 	Sender struct {
 		MulticastGroups MulticastGroups `arg help:"Multicast groups in format 'ip_address:port@interface'." type:"string"`
+		TTL             int             `help:"TTL for egress packets" default:"1"`
 		IsDebug         bool            `short:"d" help:"Enable debug mode"`
 	} `cmd help:"Multicast sender commands."`
 

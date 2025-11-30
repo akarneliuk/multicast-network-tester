@@ -70,9 +70,11 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 	if strings.Contains(mg.GrpAddress.String(), ":") {
 		pc := ipv6.NewPacketConn(conn)
 
-		if err := pc.JoinGroup(iface, &net.UDPAddr{IP: mg.GrpAddress, Port: int(mg.Port)}); err != nil {
+		localMulticastAddress := net.UDPAddr{IP: mg.GrpAddress, Port: int(mg.Port)}
+		if err := pc.JoinGroup(iface, &localMulticastAddress); err != nil {
 			logger.Fatalf("Cannot join multicast group %v on interface %v. Error: %v\n", mg.GrpAddress, iface, err)
 		}
+		defer pc.LeaveGroup(iface, &localMulticastAddress)
 
 		// Control channel
 		if err := pc.SetControlMessage(ipv6.FlagDst, true); err != nil {
@@ -128,9 +130,11 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 		// Join multicast group
 		pc := ipv4.NewPacketConn(conn)
 
-		if err := pc.JoinGroup(iface, &net.UDPAddr{IP: mg.GrpAddress, Port: int(mg.Port)}); err != nil {
+		localMulticastAddress := net.UDPAddr{IP: mg.GrpAddress, Port: int(mg.Port)}
+		if err := pc.JoinGroup(iface, &localMulticastAddress); err != nil {
 			logger.Fatalf("Cannot join multicast group %v on interface %v. Error: %v\n", mg.GrpAddress, iface, err)
 		}
+		defer pc.LeaveGroup(iface, &localMulticastAddress)
 
 		// Control channel
 		if err := pc.SetControlMessage(ipv4.FlagDst, true); err != nil {

@@ -17,8 +17,8 @@ $ go build -C src/ -o ../bin/. -v
 ### Sender
 Pass the same config file to the sender:
 ```shell
-$ ./bin/multicast-tester sender \
-  [ff03::1]:5000@wlp0s203 \
+$ ./bin/multicast-tester sender --ttl=64 \
+  [ff03::1]:5000@wlp0s20f3 \
   239.0.0.1:5000@wlp0s20f3 \
   [ff03::2]:5001@wlp0s20f3 \
   239.0.1.1:5002@wlp0s20f3
