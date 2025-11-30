@@ -79,3 +79,10 @@ multicast_packets_received{grp_address="ff03::2",port="5001",src_address="2a04:*
 promhttp_metric_handler_errors_total{cause="encoding"} 0
 promhttp_metric_handler_errors_total{cause="gathering"} 0
 ```
+
+## To-do
+1. Check out-of-order packets
+2. Telemetry on sender
+3. Sending telemetry from receiver to sender
+4. Variable message size up to max MTU on interface
+5. Sending telemetry to OTEL
