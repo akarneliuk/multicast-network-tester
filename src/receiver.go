@@ -42,8 +42,11 @@ func readConfig(filename string) (McastReceiverConfig, error) {
 	return result, nil
 }
 
-func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
+func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 	/* Main function to receive multicast data. */
+	// Close channel once done
+	defer func() { close(c) }()
+
 	// Get interface
 	iface, err := net.InterfaceByName(mg.Iface)
 	if err != nil {
@@ -64,10 +67,14 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 	}
 	defer conn.Close()
 
+	// Packets out of order
+	previousPacketNumber := uint64(0)
+	outOfOrderPacket := uint64(0)
+
 	///////////////
 	// IPv6 part //
 	///////////////
-	if strings.Contains(mg.GrpAddress.String(), ":") {
+	if mg.GrpAddress.To4() == nil {
 		pc := ipv6.NewPacketConn(conn)
 
 		localMulticastAddress := net.UDPAddr{IP: mg.GrpAddress, Port: int(mg.Port)}
@@ -99,6 +106,19 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 				Kind:      binary.BigEndian.Uint16(packet[16:]),
 			}
 
+			// Check the packet is out of order
+			if previousPacketNumber == 0 {
+				previousPacketNumber = msg.Num
+				outOfOrderPacket = 0
+			} else {
+				if msg.Num-previousPacketNumber != uint64(1) {
+					outOfOrderPacket = 1
+				} else {
+					outOfOrderPacket = 0
+				}
+				previousPacketNumber = msg.Num
+			}
+
 			// Print decoded packet for debug purpose
 			if CLI.Receiver.IsDebug {
 				logger.Printf("%+v\n", msg)
@@ -108,12 +128,12 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 			if cm.Dst.IsMulticast() {
 				// Check that packet is matching group
 				if cm.Dst.Equal(mg.GrpAddress) {
-					received := MulticastGroup{
-						Name:       mg.Name,
+					received := MulticastGroupMetrics{
 						SrcAddress: net.ParseIP(strings.Split(strings.Split(src.String(), "]:")[0], "[")[1]),
 						GrpAddress: mg.GrpAddress,
 						Port:       mg.Port,
 						Bytes:      uint64(n),
+						OutOfOrder: outOfOrderPacket,
 					}
 
 					// Send info to channel
@@ -159,6 +179,19 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 				Kind:      binary.BigEndian.Uint16(packet[16:]),
 			}
 
+			// Check the packet is out of order
+			if previousPacketNumber == 0 {
+				previousPacketNumber = msg.Num
+				outOfOrderPacket = 0
+			} else {
+				if msg.Num-previousPacketNumber != uint64(1) {
+					outOfOrderPacket = 1
+				} else {
+					outOfOrderPacket = 0
+				}
+				previousPacketNumber = msg.Num
+			}
+
 			// Print decoded packet for debug purpose
 			if CLI.Receiver.IsDebug {
 				logger.Printf("%+v\n", msg)
@@ -168,12 +201,12 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroup) {
 			if cm.Dst.IsMulticast() {
 				// Check that packet is matching group
 				if cm.Dst.Equal(mg.GrpAddress) {
-					received := MulticastGroup{
-						Name:       mg.Name,
+					received := MulticastGroupMetrics{
 						SrcAddress: net.ParseIP(strings.Split(src.String(), ":")[0]),
 						GrpAddress: mg.GrpAddress,
 						Port:       mg.Port,
 						Bytes:      uint64(n),
+						OutOfOrder: outOfOrderPacket,
 					}
 
 					// Send info to channel
@@ -200,6 +233,13 @@ func NewPromMetrics(reg prometheus.Registerer) *PrometheusMetrics {
 			},
 			appLabels,
 		),
+		multicastPacketsOutOfOrder: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "multicast_packets_out_of_order",
+				Help: "Number of multicast packets received out of order since start.",
+			},
+			appLabels,
+		),
 		multicastBytesReceived: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "multicast_bytes_received",
@@ -211,6 +251,7 @@ func NewPromMetrics(reg prometheus.Registerer) *PrometheusMetrics {
 
 	// Register metrics at registry
 	reg.MustRegister(m.multicastPacketsReceived)
+	reg.MustRegister(m.multicastPacketsOutOfOrder)
 	reg.MustRegister(m.multicastBytesReceived)
 
 	// Return result
@@ -234,7 +275,7 @@ func startReceiver() {
 	}
 
 	// Response channel
-	mcc := make(chan MulticastGroup)
+	mcc := make(chan MulticastGroupMetrics)
 
 	// Start multicast listeners
 	for _, mgr := range appConfig.MulticastGroups {
@@ -259,6 +300,7 @@ func startReceiver() {
 		// Update Prometheus metrics
 		if appConfig.PromConfig.Enabled {
 			promMetr.multicastPacketsReceived.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Inc()
+			promMetr.multicastPacketsOutOfOrder.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Add(float64(r.OutOfOrder))
 			promMetr.multicastBytesReceived.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Add(float64(r.Bytes))
 		}
 	}

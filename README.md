@@ -5,7 +5,10 @@ This is an application to test multicast network. Written in pure Go.
 Key functionality:
 - Supports both IPv4 and IPv6
 - Support multiple channels (IPv4 only, IPv6 only, or mixture of both)
-- Exports metrics via Prometheus
+- Exports metrics via Prometheus:
+  - Packets received
+  - Packets out of order received
+  - Bytes received
 
 ## Build
 ```shell
@@ -68,6 +71,13 @@ multicast_bytes_received{grp_address="239.0.0.1",port="5000",src_address="192.16
 multicast_bytes_received{grp_address="239.0.1.1",port="5002",src_address="192.168.0.2"} 168
 multicast_bytes_received{grp_address="ff03::1",port="5000",src_address="2a04:****::ab83"} 3384
 multicast_bytes_received{grp_address="ff03::2",port="5001",src_address="2a04:****::ab83"} 3648
+# HELP multicast_packets_out_of_order Number of multicast packets received out of order since start.
+# TYPE multicast_packets_out_of_order counter
+multicast_packets_out_of_order{grp_address="239.0.0.1",port="5000",src_address="192.168.0.2"} 0
+multicast_packets_out_of_order{grp_address="239.0.1.1",port="5002",src_address="192.168.0.2"} 0
+multicast_packets_out_of_order{grp_address="ff03::1",port="5000",src_address="2a04:****::ab83"} 0
+multicast_packets_out_of_order{grp_address="ff03::2",port="5001",src_address="2a04:****::ab83"} 0
+
 # HELP multicast_packets_received Number of multicast packets received since start.
 # TYPE multicast_packets_received counter
 multicast_packets_received{grp_address="239.0.0.1",port="5000",src_address="192.168.0.2"} 149
@@ -81,7 +91,6 @@ promhttp_metric_handler_errors_total{cause="gathering"} 0
 ```
 
 ## To-do
-1. Check out-of-order packets
 2. Telemetry on sender
 3. Sending telemetry from receiver to sender
 4. Variable message size up to max MTU on interface
