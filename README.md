@@ -91,7 +91,8 @@ promhttp_metric_handler_errors_total{cause="gathering"} 0
 ```
 
 ## To-do
-2. Telemetry on sender
-3. Sending telemetry from receiver to sender
-4. Variable message size up to max MTU on interface
-5. Sending telemetry to OTEL
+1. Telemetry on sender
+2. Sending telemetry from receiver to sender
+3. Variable message size up to max MTU on interface
+4. Sending telemetry to OTEL
+5. Latency gauge
