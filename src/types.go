@@ -61,9 +61,10 @@ type PromConfig struct {
 }
 type PrometheusMetrics struct {
 	/* Receiver only. */
-	multicastPacketsReceived   *prometheus.CounterVec
-	multicastPacketsOutOfOrder *prometheus.CounterVec
-	multicastBytesReceived     *prometheus.CounterVec
+	multicastPacketsReceived    *prometheus.CounterVec
+	multicastPacketsOutOfOrder  *prometheus.CounterVec
+	multicastBytesReceived      *prometheus.CounterVec
+	multicastLatencyNanoseconds *prometheus.GaugeVec
 }
 type MulticastGroupMetrics struct {
 	SrcAddress net.IP
@@ -71,6 +72,7 @@ type MulticastGroupMetrics struct {
 	Port       uint16
 	Bytes      uint64
 	OutOfOrder uint64
+	RxLatency  int64
 }
 
 // Receivers for parsing

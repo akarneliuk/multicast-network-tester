@@ -24,9 +24,7 @@ func craftMessage(ctr uint64) ([]byte, error) {
 	/* Helper message to produce message */
 
 	// time in nanosecons since midnight UTC
-	tN := time.Now().UTC()
-	tM := time.Date(tN.Year(), tN.Month(), tN.Day(), 0, 0, 0, 0, time.UTC)
-	msgTimestamp := tN.Sub(tM).Nanoseconds()
+	msgTimestamp := getTimestampFromMidnight()
 
 	// Prepare message
 	msg := MessageFormat{

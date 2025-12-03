@@ -9,6 +9,7 @@ Key functionality:
   - Packets received
   - Packets out of order received
   - Bytes received
+  - Latency between sender and receiver
 
 ## Build
 ```shell
@@ -71,13 +72,18 @@ multicast_bytes_received{grp_address="239.0.0.1",port="5000",src_address="192.16
 multicast_bytes_received{grp_address="239.0.1.1",port="5002",src_address="192.168.0.2"} 168
 multicast_bytes_received{grp_address="ff03::1",port="5000",src_address="2a04:****::ab83"} 3384
 multicast_bytes_received{grp_address="ff03::2",port="5001",src_address="2a04:****::ab83"} 3648
+# HELP multicast_latency_nanoseconds Latency in nanoseconds between packet created by sender and parsed by receiver.
+# TYPE multicast_latency_nanoseconds gauge
+multicast_latency_nanoseconds{grp_address="239.0.0.1",port="5000",src_address="192.168.0.2"} 96607
+multicast_latency_nanoseconds{grp_address="239.0.1.1",port="5002",src_address="192.168.0.2"} 96679
+multicast_latency_nanoseconds{grp_address="ff03::1",port="5000",src_address="2a04::****:::5576"} 103602
+multicast_latency_nanoseconds{grp_address="ff03::2",port="5001",src_address="2a04::****:::5576"} 190396
 # HELP multicast_packets_out_of_order Number of multicast packets received out of order since start.
 # TYPE multicast_packets_out_of_order counter
 multicast_packets_out_of_order{grp_address="239.0.0.1",port="5000",src_address="192.168.0.2"} 0
 multicast_packets_out_of_order{grp_address="239.0.1.1",port="5002",src_address="192.168.0.2"} 0
 multicast_packets_out_of_order{grp_address="ff03::1",port="5000",src_address="2a04:****::ab83"} 0
 multicast_packets_out_of_order{grp_address="ff03::2",port="5001",src_address="2a04:****::ab83"} 0
-
 # HELP multicast_packets_received Number of multicast packets received since start.
 # TYPE multicast_packets_received counter
 multicast_packets_received{grp_address="239.0.0.1",port="5000",src_address="192.168.0.2"} 149
@@ -95,4 +101,3 @@ promhttp_metric_handler_errors_total{cause="gathering"} 0
 2. Sending telemetry from receiver to sender
 3. Variable message size up to max MTU on interface
 4. Sending telemetry to OTEL
-5. Latency gauge

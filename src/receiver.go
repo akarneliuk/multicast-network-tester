@@ -67,9 +67,10 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 	}
 	defer conn.Close()
 
-	// Packets out of order
+	// Initialise metrics
 	previousPacketNumber := uint64(0)
 	outOfOrderPacket := uint64(0)
+	rxLatency := int64(0)
 
 	///////////////
 	// IPv6 part //
@@ -106,6 +107,9 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 				Kind:      binary.BigEndian.Uint16(packet[16:]),
 			}
 
+			// Calculate rxLatency
+			rxLatency = getTimestampFromMidnight() - msg.Timestamp
+
 			// Check the packet is out of order
 			if previousPacketNumber == 0 {
 				previousPacketNumber = msg.Num
@@ -134,6 +138,7 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 						Port:       mg.Port,
 						Bytes:      uint64(n),
 						OutOfOrder: outOfOrderPacket,
+						RxLatency:  rxLatency,
 					}
 
 					// Send info to channel
@@ -179,6 +184,9 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 				Kind:      binary.BigEndian.Uint16(packet[16:]),
 			}
 
+			// Calculate rxLatency
+			rxLatency = getTimestampFromMidnight() - msg.Timestamp
+
 			// Check the packet is out of order
 			if previousPacketNumber == 0 {
 				previousPacketNumber = msg.Num
@@ -207,6 +215,7 @@ func (mg MulticastGroup) startMulticastListener(c chan MulticastGroupMetrics) {
 						Port:       mg.Port,
 						Bytes:      uint64(n),
 						OutOfOrder: outOfOrderPacket,
+						RxLatency:  rxLatency,
 					}
 
 					// Send info to channel
@@ -247,12 +256,20 @@ func NewPromMetrics(reg prometheus.Registerer) *PrometheusMetrics {
 			},
 			appLabels,
 		),
+		multicastLatencyNanoseconds: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "multicast_latency_nanoseconds",
+				Help: "Latency in nanoseconds between packet created by sender and parsed by receiver.",
+			},
+			appLabels,
+		),
 	}
 
 	// Register metrics at registry
 	reg.MustRegister(m.multicastPacketsReceived)
 	reg.MustRegister(m.multicastPacketsOutOfOrder)
 	reg.MustRegister(m.multicastBytesReceived)
+	reg.MustRegister(m.multicastLatencyNanoseconds)
 
 	// Return result
 	return m
@@ -302,6 +319,7 @@ func startReceiver() {
 			promMetr.multicastPacketsReceived.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Inc()
 			promMetr.multicastPacketsOutOfOrder.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Add(float64(r.OutOfOrder))
 			promMetr.multicastBytesReceived.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Add(float64(r.Bytes))
+			promMetr.multicastLatencyNanoseconds.With(prometheus.Labels{"src_address": r.SrcAddress.String(), "grp_address": r.GrpAddress.String(), "port": fmt.Sprint(r.Port)}).Set(float64(r.RxLatency))
 		}
 	}
 
